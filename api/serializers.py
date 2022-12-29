@@ -10,8 +10,8 @@ class RecorrenciaSerializer(ModelSerializer):
         #'id',
         'cliente_CPF_CNPJ',
         'data',
-        #'n_pedido',
-        #'nome_razao_social',
+        'n_pedido',
+        'nome_razao_social',
         #'pedido_pgmto',
         'pedido_valor'
         ]
