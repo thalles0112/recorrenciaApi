@@ -1,17 +1,26 @@
-from rest_framework.serializers import ModelSerializer
-from .models import Recorrencia
-
+from rest_framework.serializers import ModelSerializer, FileField
+from .models import ExcelFile, Recorrencia
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 class RecorrenciaSerializer(ModelSerializer):
     
     class Meta:
         model = Recorrencia
-        fields = [
-        #'id',
-        'cliente_CPF_CNPJ',
-        'data',
-        'n_pedido',
-        'nome_razao_social',
-        #'pedido_pgmto',
-        'pedido_valor'
-        ]
+        fields = '__all__'
+
+
+class FileSerializer(ModelSerializer):
+    file = FileField()
+    class Meta:
+        model = ExcelFile
+        fields = '__all__'
+
+
+class UserSerializer(ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'password',)
+        extra_kwargs = {'password':{'write_only': True, 'required': False}}
+

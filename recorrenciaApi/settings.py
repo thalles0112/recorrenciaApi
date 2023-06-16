@@ -39,7 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'api',
     'corsheaders',
+    'rest_framework.authtoken',
     'rest_framework',
+    
 ]
 
 MIDDLEWARE = [
@@ -80,10 +82,10 @@ WSGI_APPLICATION = 'recorrenciaApi.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'melzinhoteste',
+        'NAME': 'ltv',
         'HOST':'127.0.0.1',
         'USER': 'root',
-        'PASSWORD': 'melzinho666',
+        'PASSWORD': 'trelinho',
         'PORT': '3306'
     }
 }
@@ -143,15 +145,26 @@ REST_FRAMEWORK = {
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_URL = os.path.join(BASE_DIR, "/static/")
-MEDIA_URL = 'static/'
-MEDIA_ROOT = 'static' # or any prefix you choose
-DEFAULT_FILE_STORAGE = STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
+MEDIA_URL = '/mediafiles/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
 
+
+
+DEFAULT_FILE_STORAGE = MEDIA_ROOT
+
+
+DEFAULT_FILE_STORAGE=  'django.core.files.storage.FileSystemStorage'
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+FILE_UPLOAD_HANDLERS = [
+    "django.core.files.uploadhandler.MemoryFileUploadHandler",
+]
+
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
