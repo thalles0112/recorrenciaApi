@@ -7,10 +7,13 @@ import json
 import datetime
 
 
-def orderByClients(clients):
-             
-        queryset = Recorrencia.objects.filter(cliente_CPF_CNPJ__in=clients).order_by('cliente_CPF_CNPJ', '-data')
-        
+def orderByClients(clients, filter=False, data_range=()):
+        queryset = Recorrencia
+        if filter:   
+            queryset = Recorrencia.objects.filter(data__range=data_range).filter(cliente_CPF_CNPJ__in=clients).order_by('cliente_CPF_CNPJ', '-data')
+        else:
+            queryset = Recorrencia.objects.filter(cliente_CPF_CNPJ__in=clients).order_by('cliente_CPF_CNPJ', '-data')
+
         data_ultimo_pedido = Recorrencia.objects.latest('data').data
         
       

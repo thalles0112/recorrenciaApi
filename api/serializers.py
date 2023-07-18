@@ -1,5 +1,5 @@
 from rest_framework.serializers import ModelSerializer, FileField
-from .models import ExcelFile, Recorrencia
+from .models import ExcelFile, Produto, Recorrencia
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
@@ -24,3 +24,7 @@ class UserSerializer(ModelSerializer):
         fields = ('id', 'username', 'email', 'password',)
         extra_kwargs = {'password':{'write_only': True, 'required': False}}
 
+class ProdutoSerializer(ModelSerializer):
+    class Meta:
+        model = Produto
+        fields = '__all__'

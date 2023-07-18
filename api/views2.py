@@ -1,5 +1,5 @@
-from .serializers import RecorrenciaSerializer
-from .models import Recorrencia
+from .serializers import ProdutoSerializer, RecorrenciaSerializer
+from .models import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import filters, status
@@ -9,10 +9,9 @@ from .order_by_client import orderByClients
 from operator import itemgetter
 from rest_framework.authentication import TokenAuthentication
 # Create your models here.
-
+'''
 objects = Recorrencia.objects.all().order_by('data')
         
-
 counter = {}
 recorrent_clients = []
 non_recorrent_clients = []
@@ -71,8 +70,115 @@ class TodosPedidos(APIView):
 
         print('retornando Response')
         return Response(response, status.HTTP_200_OK)
+'''   
+
+class TodosPedidosRecorrentes(APIView):
+    authentication_classes = [TokenAuthentication,]
+    def get(self, request, format=None):
+        data_inicial = request.GET.get('data_inicial')
+        data_final = request.GET.get('data_final')
+
+        # Converta as strings em objetos de data
+        data_inicial = datetime.datetime.strptime(data_inicial, '%Y-%m-%d').date()
+        data_final = datetime.datetime.strptime(data_final, '%Y-%m-%d').date()
+
+        objects = Recorrencia.objects.all().filter(data__range=(data_inicial, data_final)).order_by('data')
+        counter = {}
+        recorrent_clients = []
+        
+        for object in objects:
+            if object.cliente_CPF_CNPJ not in counter:
+                counter[object.cliente_CPF_CNPJ] = 0
+            counter[object.cliente_CPF_CNPJ] +=1 
+
+
+
+        for client in counter.items():
+            if int(client[1]) >= 2:
+                recorrent_clients.append(client[0])
+            
+        
+ 
+        quantidade_compras = {} # contabilizar clientes que compraram x vezes
+        for key in counter.keys():
+            if counter[key] > 1:
+                if f'c{counter[key]}' not in quantidade_compras:
+                    quantidade_compras[f'c{counter[key]}'] = 0
+                quantidade_compras[f'c{counter[key]}'] += 1
+        
+        bucetinha_gostosa = []
+        for key in quantidade_compras.keys():
+            bucetinha_gostosa.append(
+                {
+                    'quantidade_de_clientes': key.replace('c','')+' compras', #  <- tantos clientes
+                    'quantidade_de_compras': int(quantidade_compras[key]) # <- compraram tantas vezes no site
+                }
+            )
+        
+        bucetinha_gostosa = sorted(bucetinha_gostosa, reverse=True, key=lambda x: (x['quantidade_de_compras']))  
+       
+        print('recorrentes...')
+        recorrent_response = orderByClients(recorrent_clients, True, data_range=(data_inicial, data_final))
+        print('pronto!')
+        
+        
+        response = {
+            'reincidencia': bucetinha_gostosa,
+            'recorrentes': recorrent_response,
+        }
  
 
+        return Response(response, status.HTTP_200_OK)
+ 
+
+class TodosPedidosNovos(APIView):
+    authentication_classes = [TokenAuthentication,]
+    def get(self, request, format=None):
+        data_inicial = request.GET.get('data_inicial')
+        data_final = request.GET.get('data_final')
+
+        # Converta as strings em objetos de data
+        data_inicial = datetime.datetime.strptime(data_inicial, '%Y-%m-%d').date()
+        data_final = datetime.datetime.strptime(data_final, '%Y-%m-%d').date()
+
+
+        objects = Recorrencia.objects.all().filter(data__range=(data_inicial, data_final)).order_by('data')
+        counter = {}
+        
+        non_recorrent_clients = []
+        for object in objects:
+            if object.cliente_CPF_CNPJ not in counter:
+                counter[object.cliente_CPF_CNPJ] = 0
+            counter[object.cliente_CPF_CNPJ] +=1 
+
+
+
+        for client in counter.items():
+        
+            if int(client[1]) == 1: 
+                non_recorrent_clients.append(client[0])
+        quantidade_compras = {} # contabilizar clientes que compraram x vezes
+        for key in counter.keys():
+            if counter[key] > 1:
+                if f'c{counter[key]}' not in quantidade_compras:
+                    quantidade_compras[f'c{counter[key]}'] = 0
+                quantidade_compras[f'c{counter[key]}'] += 1
+        
+        bucetinha_gostosa = []
+        for key in quantidade_compras.keys():
+            bucetinha_gostosa.append(
+                {
+                    'quantidade_de_clientes': key.replace('c','')+' compras', #  <- tantos clientes
+                    'quantidade_de_compras': int(quantidade_compras[key]) # <- compraram tantas vezes no site
+                }
+            )
+        
+        bucetinha_gostosa = sorted(bucetinha_gostosa, reverse=True, key=lambda x: (x['quantidade_de_compras']))  
+        non_recorrent_response = orderByClients(non_recorrent_clients, True, data_range=(data_inicial, data_final))
+        response = non_recorrent_response
+
+        print('retornando Response')
+        return Response(response, status.HTTP_200_OK)
 
 
 class BuscaIntervalo(APIView):
@@ -83,7 +189,23 @@ class BuscaIntervalo(APIView):
     ordering = ['cliente_CPF_CNPJ', 'data']
 
     def get(self, request, format=None):
+        objects = Recorrencia.objects.all().order_by('data')
+        
+        counter = {}
+        recorrent_clients = []
+        non_recorrent_clients = []
+        for object in objects:
+            if object.cliente_CPF_CNPJ not in counter:
+                counter[object.cliente_CPF_CNPJ] = 0
+            counter[object.cliente_CPF_CNPJ] +=1 
 
+
+
+        for client in counter.items():
+            if int(client[1]) >= 2:
+                recorrent_clients.append(client[0])
+            elif int(client[1]) == 1:
+                non_recorrent_clients.append(client[0])
 
        
         max_interval_arg = self.request.query_params.get('max-interval', None)
@@ -223,7 +345,7 @@ class BuscaIntervalo(APIView):
                                     
                          
         except:
-            return Response({'erro':'Erro ao calcular variaveis l407 views2.py, BuscaIntervalo '}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'erro':'Erro ao calcular variaveis l226 views2.py, BuscaIntervalo '}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         else:
             return Response(pedidos_filtrados)
@@ -377,10 +499,15 @@ class Intervalos3(APIView):
             compras_totais += intervalos_counter[key]
         
         new_res = {'compras_totais':0, 'dados':[]}
+        contaod = 0
         for p in intervalos_counter:
             
-            new_res['dados'].append({'ocorrencias':intervalos_counter[p], 'periodo': p,})
-            
+            new_res['dados'].append({'ocorrencias':intervalos_counter[p], 'intervalo': int(p.replace('i','')),})
+            if contaod == 0:
+                print(new_res)
+            contaod += 1
+        
+        print(new_res['dados'][0])
         if ordering == 'big2small':
             ordering = True
         elif ordering == 'small2big':
@@ -388,7 +515,8 @@ class Intervalos3(APIView):
 
         
         new_list = {'todos_os_periodos':compras_totais, 'dados': []}
-        new_list['dados'] = sorted(new_res['dados'], reverse=ordering, key=itemgetter(classification))  
+
+        new_list['dados'] = sorted(new_res['dados'], reverse=ordering, key=lambda x: int(x[classification]))
         if classification == 'intervalo' and ordering == True:
             new_list['dados'] = new_list['dados'][1:bars+1]
             return Response(new_list)
@@ -439,9 +567,157 @@ class BuscaPedidos(APIView):
         return Response(response)
 
 
-class Intervalos4(APIView):
-    def get(self, request, format=None):
-        resp =[]
-        
+def contadorProdutos(key, value, arr):
+    for a in arr:
+        if a[key] == value:
+            a['count'] += 1
+    return arr
 
-        return Response(resp)
+class ProdutoDePedidos(APIView):
+
+
+
+    def get(self, request):
+        tmp_i = datetime.datetime.now()
+        data_inicial = request.GET.get('data_inicial')
+        data_final = request.GET.get('data_final')
+        
+        # Converta as strings em objetos de data
+        data_inicial = datetime.datetime.strptime(data_inicial, '%Y-%m-%d').date()
+        data_final = datetime.datetime.strptime(data_final, '%Y-%m-%d').date()
+
+        pedidos = Recorrencia.objects.all().filter(data__range=(data_inicial, data_final)).order_by('data')
+        counter = {}
+
+        for pedido in pedidos:
+            if f'c{pedido.cliente_CPF_CNPJ}' not in counter:
+                counter[f'c{pedido.cliente_CPF_CNPJ}'] = 0
+            counter[f'c{pedido.cliente_CPF_CNPJ}'] += 1
+        
+        counter = {key: val for key, val in counter.items() if val != 1}
+        
+        pedidos_recorrentes = Recorrencia.objects.filter(cliente_CPF_CNPJ__in=map(lambda cpf: cpf.replace('c',''),counter.keys()))
+        produto_recorrentes = {}
+
+        for pedido in pedidos_recorrentes:
+            for produto in pedido.produtos.all():
+                if produto.sku_nome not in produto_recorrentes:
+                    produto_recorrentes[produto.sku_nome] = {'sku_nome': produto.sku_nome, 'sku_url':produto.sku_url, 'sku_ref':produto.sku_ref, 'count':0}
+                produto_recorrentes[produto.sku_nome]['count'] += 1
+
+        tmp_f = datetime.datetime.now() 
+        print('terminado em:', tmp_f - tmp_i)  
+        return Response(produto_recorrentes.items())
+
+
+class ProdutoDePedidosNovos(APIView):
+
+
+
+    def get(self, request):
+        tmp_i = datetime.datetime.now()
+        data_inicial = request.GET.get('data_inicial')
+        data_final = request.GET.get('data_final')
+        
+        # Converta as strings em objetos de data
+        data_inicial = datetime.datetime.strptime(data_inicial, '%Y-%m-%d').date()
+        data_final = datetime.datetime.strptime(data_final, '%Y-%m-%d').date()
+
+        pedidos = Recorrencia.objects.all().filter(data__range=(data_inicial, data_final)).order_by('data')
+        counter = {}
+
+        for pedido in pedidos:
+            if f'c{pedido.cliente_CPF_CNPJ}' not in counter:
+                counter[f'c{pedido.cliente_CPF_CNPJ}'] = 0
+            counter[f'c{pedido.cliente_CPF_CNPJ}'] += 1
+        
+        counter = {key: val for key, val in counter.items() if val == 1}
+        pedidos_recorrentes = Recorrencia.objects.filter(cliente_CPF_CNPJ__in=map(lambda cpf: cpf.replace('c',''),counter.keys()))
+        produto_recorrentes = {}
+
+        for pedido in pedidos_recorrentes:
+            for produto in pedido.produtos.all():
+                if produto.sku_nome not in produto_recorrentes:
+                    produto_recorrentes[produto.sku_nome] = {'sku_nome': produto.sku_nome, 'sku_url':produto.sku_url, 'sku_ref':produto.sku_ref, 'count':0}
+                produto_recorrentes[produto.sku_nome]['count'] += 1
+                
+        tmp_f = datetime.datetime.now() 
+        print('terminado em:', tmp_f - tmp_i)  
+        return Response(produto_recorrentes.items())
+
+
+class ClientesView(APIView):
+    def get(self, request):
+        data_inicial = request.GET.get('data_inicial')
+        data_final = request.GET.get('data_final')
+        tipo = request.GET.get('tipo')
+        orderBy = request.GET.get('orderBy')
+        if orderBy == 'valor':
+            orderBy = '-pedido_valor'
+        pagina = int(request.GET.get('pagina'))
+        # Converta as strings em objetos de data
+        data_inicial = datetime.datetime.strptime(data_inicial, '%Y-%m-%d').date()
+        data_final = datetime.datetime.strptime(data_final, '%Y-%m-%d').date()
+        faturamento_total = 0
+        
+        res = {
+            'generic':{
+                'quantidade': 0,
+                'faturamento_total':0
+            },
+            'clientes':[
+
+            ]
+        }
+
+        clientes = {}
+        clientes_totais = 0
+        pedidos = Recorrencia.objects.all().filter(data__range=(data_inicial, data_final))
+        for pedido in pedidos:
+            if f'c{pedido.cliente_CPF_CNPJ}' not in clientes:
+                clientes[f'c{pedido.cliente_CPF_CNPJ}'] = 0
+            clientes[f'c{pedido.cliente_CPF_CNPJ}'] += 1
+
+        if tipo == 'recorrentes':
+           
+            pedidos = pedidos.filter(cliente_CPF_CNPJ__in=list(map(lambda x: x[0].replace('c',''), filter(lambda x: x[1] > 1, clientes.items())))).order_by('data')
+           
+           
+            faturamento_total = sum(map(lambda pedido: pedido.pedido_valor, pedidos))
+            clientes_totais = list(map(lambda x: x[0].replace('c',''), filter(lambda x: x[1] > 1, clientes.items())))
+            
+        else:
+           
+            pedidos = pedidos.filter(cliente_CPF_CNPJ__in=list(map(lambda x: x[0].replace('c',''), filter(lambda x: x[1] == 1, clientes.items())))).order_by('data')
+           
+            faturamento_total = sum(map(lambda pedido: pedido.pedido_valor, pedidos))
+            clientes_totais = list(map(lambda x: x[0].replace('c',''), filter(lambda x: x[1] == 1, clientes.items())))
+            
+     
+        clientes = {}
+        for pedido in pedidos:
+                
+            serialized = RecorrenciaSerializer(pedido).data
+            serialized['produtos'] = list(map(lambda produto: ProdutoSerializer(Produto.objects.get(id=produto)).data, serialized['produtos'])) 
+            cpf = serialized['cliente_CPF_CNPJ']
+            if cpf not in clientes:
+                clientes[cpf] = {'cpf':cpf, 'pedidos':0, 'valor_total': 0, 'datas':[], 'produtos':[]}
+            clientes[cpf]['pedidos'] += 1
+            clientes[cpf]['valor_total'] += serialized['pedido_valor']
+            clientes[cpf]['produtos'].append({'data':serialized['data'], 'lista_produtos':serialized['produtos'][:], 'valor':serialized['pedido_valor']})
+            clientes[cpf]['datas'].append(serialized['data'])
+            clientes[cpf]['nome'] = serialized['nome_razao_social']
+            
+ 
+        formated_clientes = list(clientes.values())
+        if orderBy == 'pedidos':
+            formated_clientes = list(sorted(formated_clientes, key=lambda cliente: cliente['pedidos'], reverse=True))
+        else:
+            formated_clientes = list(sorted(formated_clientes, key=lambda cliente: cliente['valor_total'], reverse=True))
+        res['generic']['faturamento_total'] = faturamento_total
+        res['generic']['quantidade'] = len(clientes_totais)
+        res['clientes'] = formated_clientes[(pagina-1)*20:pagina*20]
+
+      
+ 
+        return(Response(res))
