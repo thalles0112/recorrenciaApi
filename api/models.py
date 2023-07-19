@@ -14,6 +14,8 @@ class Produto(models.Model):
 
     def data(self):
         return({'sku_nome':self.sku_nome, 'sku_ref':self.sku_ref, 'sku_url':self.sku_url})
+    
+
 
 class Recorrencia(models.Model):
     cliente_CPF_CNPJ = models.BigIntegerField() # titular do pedido
